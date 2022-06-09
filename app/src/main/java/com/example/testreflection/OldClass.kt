@@ -1,6 +1,7 @@
 package com.example.testreflection
 
 class OldClass {
+    private val i = 0
     private val s = ""
 
     fun method1() {
@@ -17,6 +18,7 @@ class OldClass {
 
 class NewClass {
     private val s = ""
+    private val i = 0
 
     fun method1() {
     }
