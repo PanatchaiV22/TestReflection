@@ -51,6 +51,7 @@ class NewClassTest {
         for (i in oldFunc.indices) {
             assertEquals(oldFunc[i].parameters.size, newFunc[i].parameters.size)
             assertEquals(oldFunc[i].returnType, newFunc[i].returnType)
+            assertEquals(oldFunc[i].name, newFunc[i].name)
             // can also optional check for the type of each parameters but
             // I think it is unnecessary
         }
