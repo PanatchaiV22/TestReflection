@@ -3,6 +3,8 @@ package com.example.testreflection.dup
 import org.junit.Assert.*
 import org.junit.Test
 import java.io.File
+import java.io.IOException
+import java.util.*
 import kotlin.reflect.full.functions
 import kotlin.reflect.full.memberProperties
 
@@ -73,17 +75,53 @@ class DummyClassTest {
             newFile.exists()
         )
 
-        // read the file content
-        var oldText = String(oldFile.readBytes())
-        var newText = String(newFile.readBytes())
+        // Read the file content
         val kOldClass = com.example.testreflection.old.DummyClass::class
-        val kNewClass = com.example.testreflection.dup.DummyClass::class
+        val oldBuilder = StringBuilder()
+        try {
+            Scanner(oldFile).use { oldScanner ->
+                while (oldScanner.hasNextLine()) {
+                    val line = oldScanner.nextLine()
 
-        // remove the package names as they will be different between the old and the new files.
-        oldText =
-            oldText.replace("(?m)^package ${kOldClass.java.packageName}(?:\\r?\\n)?".toRegex(), "")
-        newText =
-            newText.replace("(?m)^package ${kNewClass.java.packageName}(?:\\r?\\n)?".toRegex(), "")
+                    // remove the package names as they will be different between the old and the new files.
+                    // remove the imports as many other dependencies will also be moved into the cores as well
+                    if (!line.startsWith("package ${kOldClass.java.packageName}") &&
+                        !line.startsWith("import ") &&
+                        line.isNotEmpty()
+                    ) {
+                        oldBuilder.appendLine(line)
+                    }
+                }
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
+            fail("Fail opening $oldFile")
+        }
+
+        val kNewClass = com.example.testreflection.dup.DummyClass::class
+        val newBuilder = StringBuilder()
+        try {
+            Scanner(newFile).use { newScanner ->
+                while (newScanner.hasNextLine()) {
+                    val line = newScanner.nextLine()
+
+                    // remove the package names as they will be different between the old and the new files.
+                    // remove the imports as many other dependencies will also be moved into the cores as well
+                    if (!line.startsWith("package ${kNewClass.java.packageName}") &&
+                        !line.startsWith("import ") &&
+                        line.isNotEmpty()
+                    ) {
+                        newBuilder.appendLine(line)
+                    }
+                }
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
+            fail("Fail opening $newFile")
+        }
+
+        val oldText = oldBuilder.toString()
+        val newText = newBuilder.toString()
 
         // check if content are still the same.
         assertEquals(

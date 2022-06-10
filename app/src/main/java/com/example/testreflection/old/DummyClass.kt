@@ -1,5 +1,7 @@
 package com.example.testreflection.old
 
+import java.io.File
+
 class DummyClass {
     private val i = 0
     private val s = ""
