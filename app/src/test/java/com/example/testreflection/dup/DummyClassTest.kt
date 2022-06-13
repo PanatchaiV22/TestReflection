@@ -5,6 +5,7 @@ import org.junit.Test
 import java.io.File
 import java.io.IOException
 import java.util.*
+import kotlin.reflect.KClass
 import kotlin.reflect.full.functions
 import kotlin.reflect.full.memberProperties
 
@@ -60,6 +61,63 @@ class DummyClassTest {
         }
     }
 
+    private fun handleBrackets(brackets: ArrayDeque<Char>, line: String) {
+        for (c in line) {
+            if (c == '(') {
+                brackets.push(c)
+            } else if (c == ')') {
+                if (brackets.isEmpty() || brackets.peek() != '(') {
+                    fail("Invalid brackets, the brackets are not closed properly!")
+                } else {
+                    brackets.pop()
+                }
+            }
+        }
+    }
+
+    private inline fun <reified T : Any> handleSourceFile(
+        sourceFile: File,
+        kClass: KClass<T>,
+        builder: StringBuilder
+    ) {
+        var isDeprecated = false
+        val brackets = ArrayDeque<Char>(10)
+
+        try {
+            Scanner(sourceFile).use { oldScanner ->
+                while (oldScanner.hasNextLine()) {
+                    val line = oldScanner.nextLine()
+
+                    // remove the package names as they will be different between the old and the new files.
+                    // remove the imports as many other dependencies will also be moved into the cores as well
+                    if (!line.startsWith("package ${kClass.java.packageName}") &&
+                        !line.startsWith("import ") &&
+                        line.isNotBlank()
+                    ) {
+                        if (line.startsWith("@Deprecated")) {
+                            isDeprecated = true
+                            handleBrackets(brackets, line)
+                        } else if (line.startsWith("class ")) {
+                            isDeprecated = false
+                            if (brackets.isNotEmpty()) {
+                                fail("Invalid brackets, the brackets are not closed properly!")
+                            }
+                        } else if (isDeprecated) {
+                            handleBrackets(brackets, line)
+                        }
+
+                        if (!isDeprecated) {
+                            builder.appendLine(line)
+                        }
+                    }
+                }
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
+            fail("Fail opening $sourceFile")
+        }
+    }
+
     @Test
     fun compareFileContent() {
         val oldFile = File("src/main/java/com/example/testreflection/old/DummyClass.kt")
@@ -76,49 +134,14 @@ class DummyClassTest {
         )
 
         // Read the file content
-        val kOldClass = com.example.testreflection.old.DummyClass::class
+        val kOldClass: KClass<com.example.testreflection.old.DummyClass> =
+            com.example.testreflection.old.DummyClass::class
         val oldBuilder = StringBuilder()
-        try {
-            Scanner(oldFile).use { oldScanner ->
-                while (oldScanner.hasNextLine()) {
-                    val line = oldScanner.nextLine()
+        handleSourceFile(oldFile, kOldClass, oldBuilder)
 
-                    // remove the package names as they will be different between the old and the new files.
-                    // remove the imports as many other dependencies will also be moved into the cores as well
-                    if (!line.startsWith("package ${kOldClass.java.packageName}") &&
-                        !line.startsWith("import ") &&
-                        line.isNotEmpty()
-                    ) {
-                        oldBuilder.appendLine(line)
-                    }
-                }
-            }
-        } catch (e: IOException) {
-            e.printStackTrace()
-            fail("Fail opening $oldFile")
-        }
-
-        val kNewClass = com.example.testreflection.dup.DummyClass::class
-        val newBuilder = StringBuilder()
-        try {
-            Scanner(newFile).use { newScanner ->
-                while (newScanner.hasNextLine()) {
-                    val line = newScanner.nextLine()
-
-                    // remove the package names as they will be different between the old and the new files.
-                    // remove the imports as many other dependencies will also be moved into the cores as well
-                    if (!line.startsWith("package ${kNewClass.java.packageName}") &&
-                        !line.startsWith("import ") &&
-                        line.isNotEmpty()
-                    ) {
-                        newBuilder.appendLine(line)
-                    }
-                }
-            }
-        } catch (e: IOException) {
-            e.printStackTrace()
-            fail("Fail opening $newFile")
-        }
+        val kNewClass: KClass<DummyClass> = com.example.testreflection.dup.DummyClass::class
+        val newBuilder: StringBuilder = StringBuilder()
+        handleSourceFile(newFile, kNewClass, newBuilder)
 
         val oldText = oldBuilder.toString()
         val newText = newBuilder.toString()
