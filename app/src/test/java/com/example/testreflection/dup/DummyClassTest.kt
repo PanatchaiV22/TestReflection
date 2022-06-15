@@ -124,8 +124,8 @@ class DummyClassTest {
     @ParameterizedTest
     @CsvFileSource(resources = ["/paths.csv"])
     fun compareFileContent(oldFilePath: String, newFilePath: String) {
-        val oldFile = File(oldFilePath)
-        val newFile = File(newFilePath)
+        val oldFile = File("../$oldFilePath")
+        val newFile = File("../$newFilePath")
 
         // preliminary check if the files have moved
         assertTrue(

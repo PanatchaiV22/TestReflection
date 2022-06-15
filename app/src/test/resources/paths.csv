@@ -1,2 +1,2 @@
-src/main/java/com/example/testreflection/old/DummyClass.kt,src/main/java/com/example/testreflection/dup/DummyClass.kt
-../mylibrary/src/main/java/com/example/mylibrary/old/DummyClass.kt,../mylibrary/src/main/java/com/example/mylibrary/dup/DummyClass.kt
+app/src/main/java/com/example/testreflection/old/DummyClass.kt,app/src/main/java/com/example/testreflection/dup/DummyClass.kt
+mylibrary/src/main/java/com/example/mylibrary/old/DummyClass.kt,mylibrary/src/main/java/com/example/mylibrary/dup/DummyClass.kt
