@@ -1,11 +1,11 @@
 package com.example.testreflection.old
 
-import java.io.File
-
 @Deprecated(
     message = "This class has been replaced with the Core implementation and will be removed in the next release. Please add any new code inside the Core module.",
-    replaceWith = ReplaceWith("DummyClass()",
-        "com.example.testreflection.dup"),
+    replaceWith = ReplaceWith(
+        "DummyClass()",
+        "com.example.mylibrary.dup.DummyClass"
+    ),
     level = DeprecationLevel.WARNING
 )
 class DummyClass {
