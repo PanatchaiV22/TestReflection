@@ -1,7 +1,12 @@
 package com.example.testreflection.dup
 
-import org.junit.Assert.*
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.fail
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvFileSource
 import java.io.File
 import java.io.IOException
 import java.util.*
@@ -75,9 +80,9 @@ class DummyClassTest {
         }
     }
 
-    private inline fun <reified T : Any> handleSourceFile(
+    private fun handleSourceFile(
         sourceFile: File,
-        kClass: KClass<T>,
+        kClass: KClass<*>,
         builder: StringBuilder
     ) {
         var isDeprecated = false
@@ -118,28 +123,33 @@ class DummyClassTest {
         }
     }
 
-    @Test
-    fun compareFileContent() {
-        val oldFile = File("src/main/java/com/example/testreflection/old/DummyClass.kt")
-        val newFile = File("src/main/java/com/example/testreflection/dup/DummyClass.kt")
+    private fun getClassFromFilePath(filePath: String): Class<*> {
+        val qualifiedName =
+            filePath.removePrefix("src/main/java/").removeSuffix(".kt").replace("/", ".")
+        return Class.forName(qualifiedName)
+    }
+
+    @ParameterizedTest
+    @CsvFileSource(resources = ["/paths.csv"])
+    fun compareFileContent(oldFilePath: String, newFilePath: String) {
+        val oldFile = File(oldFilePath)
+        val newFile = File(newFilePath)
 
         // preliminary check if the files have moved
         assertTrue(
-            "We are currently performing a migration on this old file /${oldFile.path}\r\nPlease do not move the file for the time being.\r\nThank you for your understanding!\r\n\r\n",
-            oldFile.exists()
+            oldFile.exists(),
+            "We are currently performing a migration on this old file /${oldFile.path}\r\nPlease do not move the file for the time being.\r\nThank you for your understanding!\r\n\r\n"
         )
         assertTrue(
-            "We are currently performing a migration on this file /${newFile.path}\r\nPlease do not move the file for the time being.\r\nThank you for your understanding!\r\n\r\n",
-            newFile.exists()
+            newFile.exists(),
+            "We are currently performing a migration on this file /${newFile.path}\r\nPlease do not move the file for the time being.\r\nThank you for your understanding!\r\n\r\n"
         )
-
         // Read the file content
-        val kOldClass: KClass<com.example.testreflection.old.DummyClass> =
-            com.example.testreflection.old.DummyClass::class
+        val kOldClass: KClass<*> = getClassFromFilePath(oldFilePath).kotlin
         val oldBuilder = StringBuilder()
         handleSourceFile(oldFile, kOldClass, oldBuilder)
 
-        val kNewClass: KClass<DummyClass> = com.example.testreflection.dup.DummyClass::class
+        val kNewClass: KClass<*> = getClassFromFilePath(newFilePath).kotlin
         val newBuilder: StringBuilder = StringBuilder()
         handleSourceFile(newFile, kNewClass, newBuilder)
 
@@ -148,9 +158,9 @@ class DummyClassTest {
 
         // check if content are still the same.
         assertEquals(
-            "We are currently performing a migration on this old file /${oldFile.path}\r\nto the new core implementation at /${newFile.path}\r\nIf you are modifying it, please make sure that both versions are in sync.\r\nThis will be resolved in the next release. Sorry for the inconvenient!\r\n\r\n",
             oldText,
-            newText
+            newText,
+            "We are currently performing a migration on this old file /${oldFile.path}\r\nto the new core implementation at /${newFile.path}\r\nIf you are modifying it, please make sure that both versions are in sync.\r\nThis will be resolved in the next release. Sorry for the inconvenient!\r\n\r\n"
         )
     }
 }
