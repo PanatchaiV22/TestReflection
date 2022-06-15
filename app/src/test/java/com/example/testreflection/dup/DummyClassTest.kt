@@ -10,7 +10,6 @@ import org.junit.jupiter.params.provider.CsvFileSource
 import java.io.File
 import java.io.IOException
 import java.util.*
-import kotlin.reflect.KClass
 import kotlin.reflect.full.functions
 import kotlin.reflect.full.memberProperties
 
@@ -82,7 +81,6 @@ class DummyClassTest {
 
     private fun handleSourceFile(
         sourceFile: File,
-        kClass: KClass<*>,
         builder: StringBuilder
     ) {
         var isDeprecated = false
@@ -95,7 +93,7 @@ class DummyClassTest {
 
                     // remove the package names as they will be different between the old and the new files.
                     // remove the imports as many other dependencies will also be moved into the cores as well
-                    if (!line.startsWith("package ${kClass.java.packageName}") &&
+                    if (!line.startsWith("package ") &&
                         !line.startsWith("import ") &&
                         line.isNotBlank()
                     ) {
@@ -123,12 +121,6 @@ class DummyClassTest {
         }
     }
 
-    private fun getClassFromFilePath(filePath: String): Class<*> {
-        val qualifiedName =
-            filePath.removePrefix("src/main/java/").removeSuffix(".kt").replace("/", ".")
-        return Class.forName(qualifiedName)
-    }
-
     @ParameterizedTest
     @CsvFileSource(resources = ["/paths.csv"])
     fun compareFileContent(oldFilePath: String, newFilePath: String) {
@@ -145,13 +137,11 @@ class DummyClassTest {
             "We are currently performing a migration on this file /${newFile.path}\r\nPlease do not move the file for the time being.\r\nThank you for your understanding!\r\n\r\n"
         )
         // Read the file content
-        val kOldClass: KClass<*> = getClassFromFilePath(oldFilePath).kotlin
         val oldBuilder = StringBuilder()
-        handleSourceFile(oldFile, kOldClass, oldBuilder)
+        handleSourceFile(oldFile, oldBuilder)
 
-        val kNewClass: KClass<*> = getClassFromFilePath(newFilePath).kotlin
         val newBuilder: StringBuilder = StringBuilder()
-        handleSourceFile(newFile, kNewClass, newBuilder)
+        handleSourceFile(newFile, newBuilder)
 
         val oldText = oldBuilder.toString()
         val newText = newBuilder.toString()
